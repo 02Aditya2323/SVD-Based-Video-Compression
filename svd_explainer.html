@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SVD Video Compression — Interactive Explainer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --bg2:       #1a1d27;
+      --bg3:       #22263a;
+      --border:    #2e3250;
+      --text:      #e8eaf6;
+      --text2:     #9fa8c7;
+      --text3:     #6b74a0;
+      --blue:      #4f8ef7;
+      --blue-bg:   #1a2a4a;
+      --blue-text: #93bbff;
+      --green:     #43d99b;
+      --green-bg:  #0f2e22;
+      --green-text:#7fffc4;
+      --amber:     #f5a623;
+      --amber-bg:  #2e1f06;
+      --amber-text:#ffd080;
+      --red:       #f76f6f;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text3);
+      margin-bottom: 2rem;
+    }
+
+    /* Nav */
+    .step-nav {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .step-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all .15s;
+      font-family: inherit;
+    }
+
+    .step-btn:hover { background: var(--bg3); }
+
+    .step-btn.active {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+      border-color: var(--blue);
+      font-weight: 500;
+    }
+
+    /* Pill */
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    .pill-blue   { background: var(--blue-bg);  color: var(--blue-text);  }
+    .pill-green  { background: var(--green-bg); color: var(--green-text); }
+    .pill-amber  { background: var(--amber-bg); color: var(--amber-text); }
+    .pill-gray   { background: var(--bg3);      color: var(--text2);      }
+
+    h3.panel-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    p { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    p + p { margin-top: .75rem; }
+    strong { font-weight: 600; color: var(--text); }
+
+    /* Code block */
+    .code-block {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--blue-text);
+      margin: 12px 0;
+    }
+
+    /* Two col */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 1rem 0;
+    }
+
+    @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Mini card */
+    .mini-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: .75rem 1rem;
+    }
+    .mini-card .num { font-size: 22px; font-weight: 600; color: var(--text); }
+    .mini-card .lbl { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+    /* Compare */
+    .compare-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: .875rem 1rem;
+    }
+    .compare-card.highlight { border-color: var(--blue); }
+    .compare-card h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .compare-card h4.blue { color: var(--blue-text); }
+    .compare-card p { font-size: 12px; color: var(--text2); margin: 4px 0; }
+
+    /* Flow */
+    .flow-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 1rem 0;
+    }
+    .flow-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text);
+      text-align: center;
+      line-height: 1.4;
+    }
+    .flow-box .sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .flow-box.accent { border-color: var(--blue); }
+    .flow-box.accent .sub { color: var(--blue-text); }
+    .flow-arrow { font-size: 18px; color: var(--text3); }
+
+    /* Step list */
+    .step-list { display: flex; flex-direction: column; gap: 0; }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .step-item:last-child { border-bottom: none; }
+    .step-num {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .step-num.blue  { background: var(--blue-bg);  color: var(--blue-text);  }
+    .step-num.green { background: var(--green-bg); color: var(--green-text); }
+    .step-num.amber { background: var(--amber-bg); color: var(--amber-text); }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--bg3);
+      margin: 8px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--blue);
+      transition: width .3s;
+    }
+
+    /* Slider */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 1rem 0;
+      font-size: 13px;
+      color: var(--text2);
+    }
+    .slider-row input[type=range] {
+      flex: 1;
+      accent-color: var(--blue);
+    }
+    .slider-val {
+      font-weight: 600;
+      color: var(--text);
+      min-width: 28px;
+    }
+
+    /* Frame grid */
+    .frame-grid {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+      align-items: flex-end;
+    }
+    .frame-box {
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 600;
+    }
+
+    /* Block grid */
+    .block-grid {
+      display: inline-grid;
+      grid-template-columns: repeat(8, 24px);
+      gap: 2px;
+    }
+    .block-cell {
+      width: 24px;
+      height: 20px;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    /* Nav buttons */
+    .nav-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 1.5rem;
+    }
+    .nav-btn {
+      padding: 8px 18px;
+      font-size: 13px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+    }
+    .nav-btn:hover { background: var(--bg3); }
+    .nav-btn.primary {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+      border-color: var(--blue);
+      font-weight: 500;
+    }
+    .nav-btn.primary:hover { background: #1e3460; }
+
+    .ratio-note {
+      font-size: 12px;
+      color: var(--text3);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>SVD + DVC Video Compression</h1>
+  <p class="subtitle">Interactive explainer — Based on Dhivya &amp; Kannan, IJERD 2013</p>
+
+  <div class="step-nav" id="nav"></div>
+  <div id="panel"></div>
+</div>
+
+<script>
+const steps = [
+  {
+    label: "0. Big idea",
+    pill: ["gray", "Overview"],
+    title: "What is SVD compression?",
+    render: () => `
+      <div class="card">
+        <p>A video is just a list of frames. Each frame is a grid of pixel values (numbers).
+        SVD is a <strong>math trick</strong> that says: <em>"you don't need ALL those numbers —
+        a small set of special numbers can rebuild a good-enough version."</em></p>
+        <div class="flow-row">
+          <div class="flow-box">Video<div class="sub">many frames</div></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box">Frames<div class="sub">each = a matrix</div></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box accent">SVD<div class="sub" style="color:var(--blue-text)">keep only k values</div></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box">Compressed<div class="sub">smaller, still good</div></div>
+        </div>
+        <p>The paper adds two smart twists: (1) it groups frames into GOPs and subtracts a mean frame first,
+        and (2) it applies SVD to <strong>blocks</strong> across frames — not one full frame at once.</p>
+      </div>
+      <div class="two-col">
+        <div class="compare-card">
+          <h4>Old naive approach</h4>
+          <p>SVD on one full frame at a time</p>
+          <p>No mean subtraction</p>
+          <p>No grouping across frames</p>
+          <p>Each frame compressed independently</p>
+        </div>
+        <div class="compare-card highlight">
+          <h4 class="blue">Paper's method</h4>
+          <p>SVD on 8×8 blocks across all frames in a GOP</p>
+          <p>Mean frame subtracted first</p>
+          <p>Eigenvectors sent ONCE per GOP</p>
+          <p>Each frame only sends S values</p>
+        </div>
+      </div>
+    `
+  },
+  {
+    label: "1. GOP grouping",
+    pill: ["blue", "Stage 1 — SVD"],
+    title: "Step 1: Group frames into a GOP",
+    render: () => `
+      <div class="card">
+        <p>Instead of processing one frame at a time, we group frames together.
+        A <strong>GOP (Group of Pictures)</strong> is typically 24 consecutive frames (~1 second of video).</p>
+        <div class="frame-grid">
+          ${Array.from({length:24},(_,i)=>`
+            <div style="text-align:center">
+              <div class="frame-box" style="width:24px;height:32px;background:var(--blue-bg);border:1px solid var(--blue);color:var(--blue-text)">${i+1}</div>
+              ${i===0?`<div style="font-size:9px;color:var(--blue-text);margin-top:2px">KEY</div>`:''}
+            </div>
+          `).join('')}
+        </div>
+        <div class="two-col" style="margin-top:1rem">
+          <div class="mini-card"><div class="num">24</div><div class="lbl">Frames per GOP (default)</div></div>
+          <div class="mini-card"><div class="num">21–31</div><div class="lbl">Optimal range (paper)</div></div>
+        </div>
+        <p style="margin-top:1rem"><strong>Why group them?</strong> Consecutive frames look very similar —
+        same background, objects barely moved. So their shared eigenvectors (Vt) genuinely capture
+        what's common, and per-frame S values capture only what's unique to each one.</p>
+      </div>
+    `
+  },
+  {
+    label: "2. Mean subtraction",
+    pill: ["blue", "Stage 1 — SVD"],
+    title: "Step 2: Subtract the mean frame",
+    render: () => `
+      <div class="card">
+        <p>Compute the <strong>average of all 24 frames</strong> in the GOP — the mean frame —
+        then subtract it from every frame.</p>
+        <div class="code-block">Fi' = Fi − Fmean</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:1rem 0">
+          <div style="text-align:center">
+            <div style="width:64px;height:42px;border-radius:6px;background:#1a3a6a;border:1px solid #4f8ef7;display:flex;align-items:center;justify-content:center;font-size:12px;color:#93bbff;font-weight:600">Frame i</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">original</div>
+          </div>
+          <span style="font-size:20px;color:var(--text3)">−</span>
+          <div style="text-align:center">
+            <div style="width:64px;height:42px;border-radius:6px;background:#152d52;border:1px solid #3a6aaa;display:flex;align-items:center;justify-content:center;font-size:12px;color:#7aaae0;font-weight:600">Fmean</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">GOP average</div>
+          </div>
+          <span style="font-size:20px;color:var(--text3)">=</span>
+          <div style="text-align:center">
+            <div style="width:64px;height:42px;border-radius:6px;background:var(--blue-bg);border:1px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--blue-text);font-weight:600">Fi'</div>
+            <div style="font-size:10px;color:var(--blue-text);margin-top:3px">mean-subtracted</div>
+          </div>
+        </div>
+        <p><strong>Why?</strong> The mean frame captures what's <em>common</em> to all frames (e.g. a static background).
+        After subtracting, Fi' only contains the <em>differences</em> — movement, changes.
+        These residuals are small numbers, so SVD compresses them far more efficiently.
+        The mean is added back when decoding.</p>
+      </div>
+    `
+  },
+  {
+    label: "3. 8×8 blocks",
+    pill: ["blue", "Stage 1 — SVD"],
+    title: "Step 3: Cut into 8×8 blocks and stack across frames",
+    render: () => `
+      <div class="card">
+        <p>Each mean-subtracted frame is cut into a grid of <strong>8×8 pixel tiles</strong>.
+        A 240×320 frame → 30 rows × 40 cols = <strong>1200 blocks</strong>.</p>
+        <div style="margin:1rem 0">
+          <div class="block-grid">
+            ${Array.from({length:64},(_,i)=>{
+              const r=Math.floor(i/8),c=i%8;
+              const hi=(r>=2&&r<=3&&c>=2&&c<=3);
+              return `<div class="block-cell" style="background:${hi?'var(--amber-bg)':'var(--bg3)'};border:1px solid ${hi?'var(--amber)':'var(--border)'};color:${hi?'var(--amber-text)':'var(--text3)'}">
+                ${hi?'●':'·'}
+              </div>`
+            }).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--amber-bg);border:1px solid var(--amber);vertical-align:middle;margin-right:4px"></span>
+            One highlighted 8×8 block (position row 2, col 2)
+          </div>
+        </div>
+        <p>For each block <em>position</em>, collect that same block from <strong>all 24 frames</strong>.
+        Flatten each 8×8 patch to 64 numbers and stack them:</p>
+        <div class="code-block">
+Frame 1:  [ 120, 118, 115, 99, 88, ... ]  ← 64 pixel values<br>
+Frame 2:  [ 121, 117, 116, 98, 87, ... ]<br>
+Frame 3:  [ 119, 120, 114, 97, 89, ... ]<br>
+...<br>
+Frame 24: [ 122, 118, 117, 99, 86, ... ]<br>
+<br>
+→ Matrix M shape: (24 × 64)
+        </div>
+        <p>This is done for all 1200 block positions. Each gives its own 24×64 matrix M. SVD is applied to each one independently.</p>
+      </div>
+    `
+  },
+  {
+    label: "4. SVD math",
+    pill: ["blue", "Stage 1 — SVD"],
+    title: "Step 4: Apply SVD to each block matrix",
+    render: () => {
+      const k = parseInt(document.getElementById('rank-sl')?.value || 3);
+      const n = 24;
+      const orig = n * 64;
+      const comp = k * (n + 64 + 1);
+      const ratio = (orig / comp).toFixed(1);
+      const pct = Math.min(100, Math.round((comp/orig)*100));
+      return `
+      <div class="card">
+        <p>SVD splits the 24×64 matrix M into three pieces:</p>
+        <div class="code-block">M  =  U  ×  diag(S)  ×  Vt</div>
+        <div style="font-size:13px;color:var(--text2);line-height:2;margin:1rem 0">
+          <div><strong>Vt</strong> — shape (k × 64) — the k visual "patterns" in pixel space. <span style="color:var(--blue-text)">Shared across all frames. Stored ONCE.</span></div>
+          <div><strong>S</strong> — shape (k,) — importance of each pattern. [980, 45, 12, 3, ...] — drops off fast!</div>
+          <div><strong>U</strong> — shape (24 × k) — how much each frame uses each pattern. <span style="color:var(--amber-text)">Per-frame data.</span></div>
+        </div>
+        <div class="code-block">
+S = [ 4823,  12.4,  3.1,  0.8,  0.2, ... ]<br>
+      ↑ huge   ↑tiny  ← throw these away (rank truncation)
+        </div>
+        <div class="slider-row">
+          <span>Rank k</span>
+          <input type="range" id="rank-sl" min="1" max="20" value="${k}" step="1" oninput="rerender()">
+          <span class="slider-val">${k}</span>
+        </div>
+        <div class="two-col">
+          <div class="mini-card"><div class="num">${orig}</div><div class="lbl">Original values (24×64)</div></div>
+          <div class="mini-card"><div class="num">${comp}</div><div class="lbl">SVD values k×(24+64+1)</div></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="ratio-note">
+          <span>Compressed to ${pct}% of original</span>
+          <span><strong>${ratio}× reduction</strong></span>
+        </div>
+        ${parseFloat(ratio) < 1 ? `<p style="color:var(--red);font-size:12px;margin-top:8px">⚠️ k is too high — SVD storing MORE than original! For 24-frame GOP, keep k below 17.</p>` : ''}
+      </div>
+    `}
+  },
+  {
+    label: "5. Reconstruct",
+    pill: ["blue", "Stage 1 — SVD"],
+    title: "Step 5: Reconstruct frames and add mean back",
+    render: () => `
+      <div class="card">
+        <p>For each block, reconstruct all 24 frames at once:</p>
+        <div class="code-block">
+recon_block = (Uk * Sk) @ Vtk   # shape (24, 64)<br>
+recon_block = recon_block.reshape(24, 8, 8)
+        </div>
+        <div class="step-list" style="margin:1rem 0">
+          <div class="step-item"><div class="step-num blue">1</div>Take Frame i's row from U → multiply by S → scale each pattern by its importance</div>
+          <div class="step-item"><div class="step-num blue">2</div>Multiply by Vt → converts pattern weights back to 64 pixel values</div>
+          <div class="step-item"><div class="step-num blue">3</div>Reshape (64) → (8×8) → place block back in its position in the frame</div>
+          <div class="step-item"><div class="step-num blue">4</div>Repeat for all 1200 block positions → full mean-subtracted frame assembled</div>
+          <div class="step-item"><div class="step-num blue" style="background:var(--green-bg);color:var(--green-text)">5</div>Add Fmean back → final reconstructed frame ✓</div>
+        </div>
+        <p>Result: all 24 frames reconstructed, slightly approximate but visually close. Same process repeats for every GOP across the full video.</p>
+      </div>
+    `
+  },
+  {
+    label: "6. DVC stage",
+    pill: ["green", "Stage 2 — DVC"],
+    title: "Step 6: Distributed Video Coding (Wyner-Ziv)",
+    render: () => `
+      <div class="card">
+        <p>SVD handles <em>spatial</em> compression (within each frame). DVC handles <em>temporal</em> compression (across frames). Adjacent frames look almost identical — so why store all 24 fully?</p>
+        <div class="frame-grid" style="margin:1rem 0">
+          <div style="text-align:center">
+            <div class="frame-box" style="width:34px;height:44px;background:var(--blue-bg);border:1.5px solid var(--blue);color:var(--blue-text)">KEY<br>F1</div>
+            <div style="font-size:9px;color:var(--blue-text);margin-top:2px">full</div>
+          </div>
+          ${Array.from({length:23},(_,i)=>`
+            <div style="text-align:center">
+              <div class="frame-box" style="width:25px;height:35px;background:var(--bg3);border:1px solid var(--border);color:var(--text3)">WZ</div>
+              <div style="font-size:8px;color:var(--text3);margin-top:2px">${i+2}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="two-col">
+          <div class="compare-card highlight">
+            <h4 class="blue">Key frame (frame 1)</h4>
+            <p>Stored completely (every pixel)</p>
+            <p>Used as anchor by decoder</p>
+            <p>Also frame 24 stored fully</p>
+          </div>
+          <div class="compare-card">
+            <h4>WZ frames (2–24)</h4>
+            <p>Encoder sends only a tiny <strong>residual</strong></p>
+            <p>Decoder interpolates a guess from key frames</p>
+            <p>Residual corrects the guess</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <p><strong>3 steps per WZ frame (e.g. Frame 7):</strong></p>
+        <div class="step-list" style="margin:1rem 0">
+          <div class="step-item">
+            <div class="step-num green">1</div>
+            <div><strong>Guess (Side Info):</strong><br>
+            <span style="font-family:monospace;font-size:12px;color:var(--blue-text)">SI = (1 - 7/24) × Frame1 + (7/24) × Frame24</span><br>
+            Weighted blend of key frames. Pretty close to actual Frame 7.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num green">2</div>
+            <div><strong>Residual = what the guess got wrong:</strong><br>
+            <span style="font-family:monospace;font-size:12px;color:var(--blue-text)">Residual = Frame7 − SI</span><br>
+            Mostly tiny numbers (near zero) because guess was close.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num green">3</div>
+            <div><strong>Quantize residual (round off tiny values):</strong><br>
+            <span style="font-family:monospace;font-size:12px;color:var(--blue-text)">0.3→0, 1.2→0, 9.4→8, 15.7→16</span><br>
+            Most become zero → very cheap to store.</div>
+          </div>
+        </div>
+        <p><strong>Decoder reconstructs Frame 7 as:</strong></p>
+        <div class="code-block">Frame7 ≈ SI + quantized_residual</div>
+      </div>
+    `
+  },
+  {
+    label: "7. Full pipeline",
+    pill: ["amber", "Complete"],
+    title: "The complete pipeline end-to-end",
+    render: () => `
+      <div class="card">
+        <div class="step-list">
+          ${[
+            ["1","Split video into GOPs (24 consecutive frames each)","blue"],
+            ["2","Compute mean frame across all 24 frames in GOP","blue"],
+            ["3","Subtract mean: Fi' = Fi − Fmean for every frame","blue"],
+            ["4","Divide each frame into 8×8 pixel blocks","blue"],
+            ["5","For each block position: stack same block from all 24 frames → matrix (24×64)","blue"],
+            ["6","SVD on that matrix → U (24×k), S (k,), Vt (k×64)","blue"],
+            ["7","Store Vt ONCE per GOP as group info + Uk, Sk per frame","blue"],
+            ["8","Reconstruct: (Uk×Sk)@Vt → reshape → add Fmean back","blue"],
+            ["9","DVC: frame 1 = key frame, stored in full","green"],
+            ["10","DVC: frames 2–24 = WZ frames, only quantized residuals stored","green"],
+            ["11","Decoder: interpolate side info + apply residual correction","green"],
+            ["12","Re-encode final output with H.264 (ffmpeg) for real file size savings","amber"],
+          ].map(([num,text,color])=>`
+            <div class="step-item">
+              <div class="step-num ${color}">${num}</div>
+              <span>${text}</span>
+            </div>
+          `).join('')}
+        </div>
+        <p style="margin-top:1rem">The paper reports <strong>3–8 dB higher PSNR</strong> than MJPEG and H.264 at the same bitrate — better picture quality for the same file size.</p>
+      </div>
+      <div class="two-col">
+        <div class="mini-card"><div class="num" style="color:var(--blue-text)">Stage 1</div><div class="lbl">SVD — spatial compression within each frame's blocks</div></div>
+        <div class="mini-card"><div class="num" style="color:var(--green-text)">Stage 2</div><div class="lbl">DVC — temporal compression across frames in GOP</div></div>
+      </div>
+    `
+  }
+];
+
+let current = 0;
+
+function rerender() {
+  document.getElementById('panel').innerHTML = buildPanel();
+}
+
+function buildPanel() {
+  const s = steps[current];
+  return `
+    <span class="pill pill-${s.pill[0]}">${s.pill[1]}</span>
+    <h3 class="panel-title">${s.title}</h3>
+    ${s.render()}
+    <div class="nav-btns">
+      ${current > 0 ? `<button class="nav-btn" onclick="goTo(${current-1})">← Back</button>` : ''}
+      ${current < steps.length-1
+        ? `<button class="nav-btn primary" onclick="goTo(${current+1})">Next →</button>`
+        : `<button class="nav-btn primary" onclick="alert('You have completed the full explainer!')">Done ✓</button>`
+      }
+    </div>
+  `;
+}
+
+function buildNav() {
+  document.getElementById('nav').innerHTML = steps.map((s,i)=>`
+    <button class="step-btn ${i===current?'active':''}" onclick="goTo(${i})">${s.label}</button>
+  `).join('');
+}
+
+function goTo(i) {
+  current = i;
+  buildNav();
+  document.getElementById('panel').innerHTML = buildPanel();
+}
+
+buildNav();
+document.getElementById('panel').innerHTML = buildPanel();
+</script>
+</body>
+</html>
